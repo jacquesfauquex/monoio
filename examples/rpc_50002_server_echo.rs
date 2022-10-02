@@ -1,17 +1,27 @@
-//! An echo example.
+//! rpc_50002_server_echo.rs
 //!
-//! Run the example and `nc 127.0.0.1 50002` in another shell.
-//! All your input will be echoed out.
+//! rpc prototype
+//! one input will be echoed out and the tcp stream closed inmediately after.
+//! 
+//! testing: 
+//! - Run the example and `nc 127.0.0.1 50002` in another shell.
+//! - execute rpc_50002_client.rs
+
+const ENDPOINT:&str="127.0.0.1:50002";
+const BUFFER_CAPACITY:usize =1024;//echoes no more than 1024 bytes in one write operation
 
 use monoio::{
     io::{AsyncReadRent, AsyncWriteRentExt, AsyncWriteRent},
     net::{TcpListener, TcpStream},
 };
 
-#[monoio::main(driver = "fusion")]
+
+#
+[monoio::main(driver = "fusion")]
 async fn main() {
+    
     // tracing_subscriber::fmt().with_max_level(tracing::Level::TRACE).init();
-    let listener = TcpListener::bind("127.0.0.1:50002").unwrap();
+    let listener = TcpListener::bind(ENDPOINT).unwrap();
     println!("listening");
     loop {
         let incoming = listener.accept().await;
@@ -28,9 +38,11 @@ async fn main() {
     }
 }
 
+//handler which can be customized for other purposes
 async fn echo(mut stream: TcpStream) -> std::io::Result<()> {
-    let mut buf: Vec<u8> = Vec::with_capacity(8 * 1024);
+    let mut buf: Vec<u8> = Vec::with_capacity(BUFFER_CAPACITY);
     loop {
+
         // read
         let (res, _buf) = stream.read(buf).await;
         buf = _buf;
@@ -39,14 +51,13 @@ async fn echo(mut stream: TcpStream) -> std::io::Result<()> {
             return Ok(());
         }
 
-        // write all
+        // write one buffer contents
         let (res, _buf) = stream.write_all(buf).await;
         buf = _buf;
         res?;
-
-        // clear
         buf.clear();
 
-        stream.shutdown();//JF
+        //write 0 bytes (END OF STREAM)
+        let _ = stream.shutdown();
     }
 }

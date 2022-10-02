@@ -25,8 +25,6 @@ Cada servicio es de tipo RPC echo y usa el protocolo TCP de la siguiente forma :
 -  server response stream out
 -  server conexión closing
 
-No implementa HTTP.
-
 ### Stateless
 
 Cada servicio es absolutamente stateless.
@@ -47,7 +45,9 @@ La seguridad tiene que implementarse en los proxy frontends expuestos a internet
 
 
 
-#### HTTP Excluido de la arquitectura de micro servicios 
+### Excluidos de la arquitectura de micro servicios 
+
+#### HTTP
 
 El consumo http está excluido de los micro servicios. Para eso usamos curl hyper directamente desde rust.
 
@@ -64,7 +64,37 @@ Existe un crate "curl", pero la integración es menos profunda que con "hyper".
 
 https://docs.rs/curl/latest/curl/
 
+#### XSLT
+Usamos para eso un servico tcp provisto por node.js que integra saxon-js 2 y transformadores compilados a formato sef.
 
+- node.js se descarga con package instalador para mac. Luego instalar via npm saxon-js y xslt3
+- https://www.saxonica.com/saxon-js/documentation2/index.html#!starting/installing-nodejs
+- finalmente, crear un server.js (https://nodejs.org/en/docs/guides/getting-started-guide/)
+```javascript
+const http = require('http');
+
+const hostname = '127.0.0.1';
+const port = 3000;
+
+const server = http.createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end('Hello World');
+});
+
+server.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
+```
+- y ejecutarlo
+```sh
+$ node server.js
+Server running at http://127.0.0.1:3000/
+```
+
+
+
+- https://www.saxonica.com/saxon-js/documentation2/index.html
 
 ## Prototipo
 
@@ -72,7 +102,7 @@ https://docs.rs/curl/latest/curl/
 
 ```sh
 cd MONOIO/examples
-cargo run --color=always --example echo --release or
+cargo run --color=always --example rpc_one_echo --release or
 ```
 
 ### Código servidor
@@ -132,7 +162,18 @@ async fn echo(mut stream: TcpStream) -> std::io::Result<()> {
 
 ## Cliente
 
+### nc
+```sh
+nc ip port
+```
 
+### bash
+```bash
+nc ip port
+```
 
-
+### monoio
+```rust
+nc ip port
+```
 
